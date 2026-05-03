@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Microsoft MVP Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+<link rel="stylesheet" href="/static/style.css?v=20" />
+<script src="/static/lang.js?v=20"></script>
+<style>
+.setup-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 60px);
+    padding: 2rem;
+}
+.setup-card {
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    padding: 3rem 3.5rem;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+}
+.setup-spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid #e5e7eb;
+    border-top-color: #5b3cc4;
+    border-radius: 50%;
+    animation: spin 0.85s linear infinite;
+    margin: 0 auto 1.75rem;
+    transition: border-top-color 0.4s;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.setup-card h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.35rem;
+    color: #1f2937;
+}
+.setup-sub {
+    color: #6b7280;
+    margin: 0 0 2rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+.setup-status {
+    color: #5b3cc4;
+    font-weight: 600;
+    font-size: 1rem;
+    min-height: 1.6em;
+    transition: color 0.3s;
+}
+.setup-progress-wrap {
+    width: 100%;
+    background: #e5e7eb;
+    border-radius: 999px;
+    height: 10px;
+    margin: 1.25rem 0 0.5rem;
+    overflow: hidden;
+    display: none;
+}
+.setup-progress-bar {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #5b3cc4, #2d6df6);
+    width: 0%;
+    transition: width 0.6s ease;
+}
+.setup-pct {
+    font-size: 0.82rem;
+    color: #9ca3af;
+    margin: 0 0 0.25rem;
+    display: none;
+}
+.setup-eta {
+    font-size: 0.82rem;
+    color: #9ca3af;
+    margin: 0;
+    min-height: 1.2em;
+    display: none;
+}
+.setup-done .setup-spinner { border-top-color: #16a34a; }
+.setup-done .setup-status  { color: #16a34a; }
+.setup-failed .setup-spinner { border-top-color: #dc2626; animation: none; }
+.setup-failed .setup-status  { color: #dc2626; }
+.setup-error-detail {
+    color: #9ca3af;
+    font-size: 0.82rem;
+    margin-top: 0.75rem;
+    display: none;
+    font-family: monospace;
+    word-break: break-all;
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+    <h1>Microsoft MVP Dashboard</h1>
+    <div class="lang-selector">
+        <button class="lang-btn" data-lang="en" title="English"><img src="/static/flags/us.png" alt="English" width="28" height="20"></button>
+        <button class="lang-btn" data-lang="pt" title="Portugu&ecirc;s (Brasil)"><img src="/static/flags/br.png" alt="PT" width="28" height="20"></button>
+        <button class="lang-btn" data-lang="es" title="Espa&ntilde;ol"><img src="/static/flags/es.png" alt="ES" width="28" height="20"></button>
+    </div>
+</header>
+
+<div class="setup-wrap">
+    <div class="setup-card" id="setup-card">
+        <div class="setup-spinner" id="setup-spinner"></div>
+        <h2 id="setup-heading"></h2>
+        <p class="setup-sub" id="setup-sub"></p>
+        <p class="setup-status" id="setup-status"></p>
+        <div class="setup-progress-wrap" id="setup-progress-wrap">
+            <div class="setup-progress-bar" id="setup-progress-bar"></div>
+        </div>
+        <p class="setup-pct" id="setup-pct"></p>
+        <p class="setup-eta" id="setup-eta"></p>
+        <p class="setup-error-detail" id="setup-error-detail"></p>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var pollTimer = null;
+    var card    = document.getElementById('setup-card');
+    var barWrap = document.getElementById('setup-progress-wrap');
+    var bar     = document.getElementById('setup-progress-bar');
+    var pctEl   = document.getElementById('setup-pct');
+    var etaEl   = document.getElementById('setup-eta');
+
+    function applyLang() {
+        document.getElementById('setup-heading').textContent = window.t('setup_heading');
+        document.getElementById('setup-sub').textContent     = window.t('setup_sub');
+        document.querySelectorAll('.lang-btn').forEach(function (btn) {
+            btn.classList.toggle('active', btn.dataset.lang === window.currentLang);
+        });
+        document.documentElement.lang = window.currentLang === 'pt' ? 'pt-BR' : window.currentLang;
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            window.setLang(btn.dataset.lang);
+            applyLang();
+        });
+    });
+
+    function setStatus(text) {
+        document.getElementById('setup-status').textContent = text;
+    }
+
+    function markDone() {
+        clearInterval(pollTimer);
+        card.classList.add('setup-done');
+        setStatus(window.t('setup_done'));
+        setTimeout(function () { location.href = '/'; }, 1800);
+    }
+
+    function markFailed(detail) {
+        clearInterval(pollTimer);
+        card.classList.add('setup-failed');
+        setStatus(window.t('setup_error'));
+        if (detail) {
+            var el = document.getElementById('setup-error-detail');
+            el.textContent = detail;
+            el.style.display = '';
+        }
+    }
+
+    function fmtElapsed(s) {
+        if (s < 60) return s + 's';
+        return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+    }
+
+    function fmtEta(s) {
+        if (s <= 0) return '';
+        var lang = window.currentLang;
+        var prefix = lang === 'pt' ? 'falta ~' : lang === 'es' ? 'faltan ~' : '~';
+        if (s < 60) return prefix + s + 's';
+        return prefix + Math.ceil(s / 60) + 'm';
+    }
+
+    function setProgress(current, total, elapsed) {
+        if (total <= 0 || current <= 0) return;
+        var pct = Math.min(100, Math.round(current / total * 100));
+        barWrap.style.display = 'block';
+        bar.style.width = pct + '%';
+        pctEl.style.display = 'block';
+        pctEl.textContent = current.toLocaleString() + ' / ' + total.toLocaleString() + ' MVPs (' + pct + '%)';
+        if (elapsed > 3 && pct > 0 && pct < 100) {
+            var totalEst  = Math.round(elapsed / pct * 100);
+            var remaining = totalEst - elapsed;
+            etaEl.style.display = 'block';
+            etaEl.textContent   = fmtEta(remaining);
+        }
+    }
+
+    function poll() {
+        fetch('/api/setup')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.ready) { markDone(); return; }
+                if (data.failed) { markFailed(); return; }
+                var elapsed = data.elapsed_seconds || 0;
+                var phase   = data.phase;
+
+                if (phase === 'enrich') {
+                    // Phase 2: enrich
+                    var done  = data.enrich_done  || 0;
+                    var total = data.enrich_total  || 0;
+                    var fn = window.t('setup_enrich_progress');
+                    setStatus(typeof fn === 'function'
+                        ? fn(done.toLocaleString(), total.toLocaleString())
+                        : window.t('setup_enriching'));
+                    setProgress(done, total, elapsed);
+                } else {
+                    // Phase 1: scan
+                    var current = data.mvp_count      || 0;
+                    var total1  = data.total_expected  || 0;
+                    if (current > 0 && total1 > 0) {
+                        var fn2 = window.t('setup_progress');
+                        setStatus(typeof fn2 === 'function' ? fn2(current.toLocaleString()) : current + ' MVPs\u2026');
+                        setProgress(current, total1, elapsed);
+                    } else if (current > 0) {
+                        var fn3 = window.t('setup_progress');
+                        setStatus((typeof fn3 === 'function' ? fn3(current.toLocaleString()) : current + ' MVPs\u2026') + ' (' + fmtElapsed(elapsed) + ')');
+                    } else if (data.scanning) {
+                        setStatus(window.t('setup_scanning') + ' ' + fmtElapsed(elapsed));
+                    }
+                }
+            })
+            .catch(function () { /* network blip \u2014 keep polling */ });
+    }
+
+    function startSetup() {
+        setStatus(window.t('setup_wait'));
+        fetch('/api/setup', { method: 'POST' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.already_ready) { location.href = '/'; return; }
+                if (data.error)         { markFailed(data.error); return; }
+                // started=true OR already_running=true — begin polling
+                poll();
+                pollTimer = setInterval(poll, 3000);
+            })
+            .catch(function (e) { markFailed(e.message); });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        applyLang();
+        startSetup();
+    });
+}());
+</script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Microsoft MVP Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+<link rel="stylesheet" href="/static/style.css?v=26" />
+<script src="/static/lang.js?v=26"></script>
+<script src="/static/chart.umd.min.js"></script>
+<script src="/static/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBGsoDiCTD07uSvQP44b49vUP0oiKg2bzM&libraries=marker&map_ids=f7401a5a74547325672faea6&loading=async&callback=initMap" async defer></script>
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-row1">
+        <h1>Microsoft MVP Dashboard</h1>
+        <div class="lang-selector">
+            <button class="lang-btn" data-lang="en" title="English"><img src="/static/flags/us.png" alt="English" width="28" height="20"></button>
+            <button class="lang-btn" data-lang="pt" title="Portugu&ecirc;s (Brasil)"><img src="/static/flags/br.png" alt="PT" width="28" height="20"></button>
+            <button class="lang-btn" data-lang="es" title="Espa&ntilde;ol"><img src="/static/flags/es.png" alt="ES" width="28" height="20"></button>
+        </div>
+    </div>
+    <div class="topstats" id="topstats">
+        <span class="stat"><strong id="stat-active">–</strong><span data-i18n="stat_active"> active MVPs</span></span>
+        <span class="stat"><strong id="stat-countries">–</strong><span data-i18n="stat_countries"> countries</span></span>
+        <span class="stat"><strong id="stat-left">–</strong><span data-i18n="stat_left"> left program</span></span>
+        <span class="stat last-scan" id="stat-lastscan">–</span>
+    </div>
+</header>
+<nav class="filter-bar">
+    <button class="filter-toggle" id="filter-toggle" type="button" aria-expanded="false">
+        <span class="filter-toggle-label" data-i18n="filters_show">&#9776; Filtros</span>
+    </button>
+    <div class="filters" id="filters-body">
+        <input type="search" id="f-q" data-i18n-ph="search_placeholder" placeholder="Search name, headline, bio..." />
+        <div class="ms-wrap" id="ms-country"></div>
+        <select id="f-level"><option value="" data-i18n="all_levels">All levels</option></select>
+        <select id="f-gender"><option value="" data-i18n="all_genders">All genders</option></select>
+        <div class="ms-wrap" id="ms-language"></div>
+        <select id="f-award-category"><option value="" data-i18n="all_categories">All categories</option></select>
+        <select id="f-status">
+            <option value="active" data-i18n="status_active">Active</option>
+            <option value="left" data-i18n="status_left">Left program</option>
+            <option value="all" data-i18n="status_all">All</option>
+        </select>
+        <select id="f-sort">
+            <option value="" data-i18n="sort_column">Sort: (column)</option>
+            <option value="name" data-i18n="sort_name">Sort: Name</option>
+            <option value="country" data-i18n="sort_country">Sort: Country</option>
+            <option value="entry" data-i18n="sort_newest">Sort: Newest entry</option>
+            <option value="entry_asc" data-i18n="sort_oldest">Sort: Oldest entry</option>
+            <option value="first_seen" data-i18n="sort_first_seen">Sort: First seen</option>
+        </select>
+        <button id="f-reset" type="button" data-i18n="reset">Reset</button>
+    </div>
+    <div class="tab-nav">
+        <button class="tab-btn active" data-tab="charts" data-i18n="tab_charts">Charts</button>
+        <button class="tab-btn" data-tab="details" data-i18n="tab_details">Details</button>
+        <button class="tab-btn" data-tab="new-mvps" data-i18n="tab_new_mvps">New MVPs</button>
+    </div>
+</nav>
+
+<main>
+    <div id="tab-charts" class="tab-pane">
+    <section class="grid">
+        <div class="card span-2">
+            <h2 data-i18n="chart_mvps_by_country">MVPs by Country</h2>
+            <div id="map"></div>
+        </div>
+        <div class="card col-2">
+            <h2 data-i18n="chart_top_countries">Top Countries</h2>
+            <div class="chart-wrap tall"><canvas id="chart-countries"></canvas></div>
+        </div>
+        <div class="card col-2">
+            <h2 data-i18n="chart_time_in_program">Time in Program</h2>
+            <div class="chart-wrap"><canvas id="chart-time"></canvas></div>
+        </div>
+        <div class="card col-3">
+            <h2 data-i18n="chart_by_level">By Level</h2>
+            <div class="chart-wrap"><canvas id="chart-level"></canvas></div>
+        </div>
+        <div class="card col-3">
+            <h2 data-i18n="chart_by_gender">By Gender</h2>
+            <div class="chart-wrap"><canvas id="chart-gender"></canvas></div>
+        </div>
+        <div class="card col-3">
+            <h2 data-i18n="chart_top_languages">Top Languages</h2>
+            <div class="chart-wrap"><canvas id="chart-lang"></canvas></div>
+        </div>
+        <div class="card col-3">
+            <h2 data-i18n="chart_social_networks">Social Networks</h2>
+            <div class="chart-wrap"><canvas id="chart-social"></canvas></div>
+        </div>
+        <div class="card col-3">
+            <h2 data-i18n="chart_other_programs">Other Programs (Tenants)</h2>
+            <div class="chart-wrap"><canvas id="chart-tenants"></canvas></div>
+        </div>
+        <div class="card col-3">
+            <h2 data-i18n="chart_by_title">By Title</h2>
+            <div class="chart-wrap"><canvas id="chart-title"></canvas></div>
+        </div>
+        <div class="card col-2">
+            <h2 data-i18n="chart_events_per_mvp">Events per MVP</h2>
+            <div class="chart-wrap"><canvas id="chart-events-buckets"></canvas></div>
+        </div>
+        <div class="card col-2">
+            <h2 data-i18n="chart_activities_per_mvp">Activities per MVP</h2>
+            <div class="chart-wrap"><canvas id="chart-activities-buckets"></canvas></div>
+        </div>
+        <div class="card col-2">
+            <h2 data-i18n="chart_top_companies">Top 10 Companies</h2>
+            <div class="chart-wrap"><canvas id="chart-companies"></canvas></div>
+        </div>
+        <div class="card col-3">
+            <h2 data-i18n="chart_award_categories">Award Categories</h2>
+            <div class="chart-wrap tall"><canvas id="chart-award-categories"></canvas></div>
+        </div>
+        <div class="card col-3">
+            <h2 data-i18n="chart_tech_focus">Technology Focus Areas</h2>
+            <div class="chart-wrap tall"><canvas id="chart-tech-focus"></canvas></div>
+        </div>
+        <div class="card col-6">
+            <h2 data-i18n="chart_joins_by_year">Joins by Year</h2>
+            <div class="chart-wrap"><canvas id="chart-joins"></canvas></div>
+        </div>
+    </section>
+    </div>
+
+    <div id="tab-details" class="tab-pane" hidden>
+    <section class="card">
+        <h2 data-i18n="mvps_section">MVPs</h2>
+        <div class="table-wrap">
+            <table id="mvp-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th data-col="name">Name</th>
+                        <th data-col="country">Country</th>
+                        <th data-col="level">Level</th>
+                        <th data-col="headline">Headline</th>
+                        <th data-col="years">Years</th>
+                        <th data-i18n="col_activities">Activities</th>
+                        <th data-i18n="col_events">Events</th>
+                        <th data-col="status">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="mvp-tbody"></tbody>
+            </table>
+        </div>
+        <div class="pager">
+            <button id="prev" type="button" data-i18n="btn_prev">‹ Prev</button>
+            <span id="pager-info"></span>
+            <button id="next" type="button" data-i18n="btn_next">Next ›</button>
+        </div>
+    </section>
+    </div>
+
+    <div id="tab-new-mvps" class="tab-pane" hidden>
+    <section class="card">
+        <h2 data-i18n="tab_new_mvps">New MVPs</h2>
+        <div class="table-wrap">
+            <table id="new-mvps-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th data-col="name" data-i18n="col_name">Name</th>
+                        <th data-col="country" data-i18n="col_country">Country</th>
+                        <th data-col="headline" data-i18n="col_headline">Headline</th>
+                        <th data-col="entry" data-i18n="col_entry_date">Entry Date</th>
+                        <th data-i18n="col_activities">Activities</th>
+                        <th data-i18n="col_events">Events</th>
+                        <th data-col="status" data-i18n="col_status">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="new-mvps-tbody"></tbody>
+            </table>
+        </div>
+        <div class="pager">
+            <button id="new-mvps-prev" type="button" data-i18n="btn_prev">‹ Prev</button>
+            <span id="new-mvps-pager-info"></span>
+            <button id="new-mvps-next" type="button" data-i18n="btn_next">Next ›</button>
+        </div>
+    </section>
+    </div>
+</main>
+
+<dialog id="mvp-modal">
+    <div id="mvp-modal-body"></div>
+    <form method="dialog"><button data-i18n="close">Close</button></form>
+</dialog>
+
+<dialog id="drill-modal">
+    <div id="drill-modal-header">
+        <h3 id="drill-title"></h3>
+        <form method="dialog"><button type="submit" aria-label="Close">&times;</button></form>
+    </div>
+    <div id="drill-modal-body">
+        <div class="table-wrap">
+            <table id="drill-table">
+                <thead><tr><th></th><th data-i18n="col_name">Name</th><th data-i18n="col_country">Country</th><th data-i18n="col_level">Level</th><th data-i18n="col_headline">Headline</th><th data-i18n="col_years">Years</th><th data-i18n="col_activities">Activities</th><th data-i18n="col_events">Events</th><th data-i18n="col_status">Status</th></tr></thead>
+                <tbody id="drill-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="pager" id="drill-pager">
+        <button id="drill-prev" type="button" data-i18n="btn_prev">‹ Prev</button>
+        <span id="drill-pager-info"></span>
+        <button id="drill-next" type="button" data-i18n="btn_next">Next ›</button>
+    </div>
+</dialog>
+
+<script src="/static/dashboard.js?v=26"></script>
+</body>
+</html>

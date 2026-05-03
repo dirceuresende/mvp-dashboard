@@ -1,0 +1,9 @@
+Options -Indexes
+RewriteEngine On
+
+# Allow actual files (static assets served by web server directly)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Everything else -> index.php
+RewriteRule ^ index.php [QSA,L]

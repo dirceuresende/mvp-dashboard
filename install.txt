@@ -1,0 +1,171 @@
+# ==============================================================================
+# MVP Dashboard - Instalacao no servidor Linux (Debian/Ubuntu)
+# Testado em: Debian trixie, Ubuntu 22.04+
+# ==============================================================================
+
+
+# ------------------------------------------------------------------------------
+# 1. Dependencias do sistema
+# ------------------------------------------------------------------------------
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y \
+    ca-certificates \
+    apt-transport-https \
+    lsb-release \
+    gnupg \
+    curl \
+    wget \
+    git \
+    cron \
+    unzip
+
+
+# ------------------------------------------------------------------------------
+# 2. Adicionar repositorio oficial do PHP (sury.org)
+#    Necessario para PHP 8.5+ em Debian/Ubuntu
+# ------------------------------------------------------------------------------
+sudo curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg \
+    https://packages.sury.org/php/apt.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] \
+    https://packages.sury.org/php/ $(lsb_release -sc) main" \
+    | sudo tee /etc/apt/sources.list.d/php.list
+
+sudo apt update
+
+
+# ------------------------------------------------------------------------------
+# 3. Instalar PHP 8.5 + extensoes necessarias
+# ------------------------------------------------------------------------------
+sudo apt install -y \
+    php8.5 \
+    php8.5-cli \
+    php8.5-common \
+    php8.5-curl \
+    php8.5-sqlite3 \
+    php8.5-mbstring \
+    php8.5-xml \
+    php8.5-opcache \
+    libapache2-mod-php8.5
+
+# Verificar versao instalada
+php -v
+
+# Verificar extensoes ativas
+php -m
+
+
+# ------------------------------------------------------------------------------
+# 4. Instalar e configurar Apache
+# ------------------------------------------------------------------------------
+sudo apt install -y apache2
+
+# Habilitar modulos necessarios
+sudo a2enmod rewrite
+sudo a2enmod php8.5
+sudo a2enmod headers
+sudo a2enmod expires
+
+# Reiniciar Apache
+sudo systemctl enable apache2
+sudo systemctl restart apache2
+
+
+# ------------------------------------------------------------------------------
+# 5. Configurar AllowOverride para .htaccess funcionar
+#    Editar /etc/apache2/apache2.conf e garantir:
+#
+#    <Directory /var/www/html>
+#        AllowOverride All
+#    </Directory>
+#
+# Ou aplicar via sed:
+# ------------------------------------------------------------------------------
+sudo sed -i '/<Directory \/var\/www\/html>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' \
+    /etc/apache2/apache2.conf
+
+sudo systemctl restart apache2
+
+# ------------------------------------------------------------------------------
+# 6. Permissoes de arquivos
+# ------------------------------------------------------------------------------
+# Owner dirceu, grupo www-data
+sudo chown -R dirceu:www-data /var/www/html
+
+# Diretorios: rwxr-xr-x
+sudo find /var/www/html -type d -exec chmod 755 {} \;
+
+# Arquivos: rw-r--r--
+sudo find /var/www/html -type f -exec chmod 644 {} \;
+
+# data/ precisa de escrita pelo www-data (SQLite, logs, lock, progress)
+sudo chmod -R 775 /var/www/html/data
+sudo mkdir -p /var/www/html/data
+sudo mkdir -p /var/www/html/logs
+sudo chmod -R 775 /var/www/html/logs
+
+# scripts/ executaveis via CLI
+sudo chmod -R 755 /var/www/html/scripts
+
+# Adicionar usuario dirceu ao grupo www-data
+sudo usermod -aG www-data dirceu
+# Aplicar sem logout:
+# newgrp www-data
+
+
+# ------------------------------------------------------------------------------
+# 7. Configurar cron (se nao usar o setup automatico do dashboard)
+# ------------------------------------------------------------------------------
+sudo systemctl enable cron
+sudo systemctl start cron
+
+# Verificar se cron esta rodando
+sudo systemctl status cron
+
+
+# ------------------------------------------------------------------------------
+# 8. Verificacao final
+# ------------------------------------------------------------------------------
+
+# PHP e extensoes
+php -m | grep -E "curl|sqlite3|mbstring|xml|opcache|json|PDO"
+
+# Apache respondendo
+curl -I http://localhost/
+
+# Permissoes do data/
+ls -la /var/www/html/data/
+
+# Testar escrita no SQLite como www-data
+sudo -u www-data php -r "
+\$pdo = new PDO('sqlite:/var/www/html/data/test.sqlite');
+\$pdo->exec('CREATE TABLE IF NOT EXISTS t (id INTEGER PRIMARY KEY)');
+echo 'SQLite OK' . PHP_EOL;
+"
+sudo rm -f /var/www/html/data/test.sqlite
+
+
+# ------------------------------------------------------------------------------
+# 9. Primeira carga (se nao usar o setup automatico via browser)
+# ------------------------------------------------------------------------------
+cd /var/www/html
+php scripts/sync.php > data/setup.log 2>&1 &
+echo "PID: $!"
+
+# Acompanhar progresso
+tail -f data/setup.log
+
+
+# ------------------------------------------------------------------------------
+# 10. Configurar jobs na crontab
+# ------------------------------------------------------------------------------
+
+# Definir a crontab completa do www-data (sobrescreve tudo, sem duplicatas):
+sudo crontab -u www-data - << 'EOF'
+0 7 3-31 * * cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --no-enrich >> logs/scan.log 2>&1
+0 * 1,2 * * cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --no-enrich >> logs/scan.log 2>&1
+0 0 * * 0 cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --force-enrich >> logs/enrich.log 2>&1
+EOF
+
+# Verificar que os jobs foram adicionados corretamente
+sudo crontab -u www-data -l
