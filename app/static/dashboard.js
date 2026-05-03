@@ -3,6 +3,8 @@ const $ = (s) => document.querySelector(s);
 const state = { page: 1, pageSize: 50, total: 0, totalPages: 1 };
 const newMvpsState = { page: 1, totalPages: 1 };
 const newMvpsSortState = [{ col: 'entry', dir: 'desc' }];
+const leavingMvpsState = { page: 1, totalPages: 1 };
+const leavingMvpsSortState = [{ col: 'left', dir: 'desc' }];
 let charts = {};
 let map, infoWindow;
 let msCountry, msLanguage;
@@ -45,6 +47,23 @@ function updateSortHeaders() {
         if (idx >= 0) {
             const arrow = newMvpsSortState[idx].dir === 'asc' ? '↑' : '↓';
             const num = newMvpsSortState.length > 1
+                ? `<span class="th-sort-num">${idx + 1}</span>`
+                : '';
+            icon = `${num}<span class="th-sort-icon">${arrow}</span>`;
+        } else {
+            icon = '<span class="th-sort-icon">↕</span>';
+        }
+        th.innerHTML = label + icon;
+    });
+    document.querySelectorAll('#leaving-mvps-table th[data-col]').forEach(th => {
+        const col = th.dataset.col;
+        const idx = leavingMvpsSortState.findIndex(s => s.col === col);
+        th.dataset.sortDir = idx >= 0 ? leavingMvpsSortState[idx].dir : '';
+        const label = col === 'left' ? t('col_left_date') : t('col_' + col);
+        let icon = '';
+        if (idx >= 0) {
+            const arrow = leavingMvpsSortState[idx].dir === 'asc' ? '↑' : '↓';
+            const num = leavingMvpsSortState.length > 1
                 ? `<span class="th-sort-num">${idx + 1}</span>`
                 : '';
             icon = `${num}<span class="th-sort-icon">${arrow}</span>`;
@@ -762,6 +781,50 @@ async function loadNewMvpsTable() {
     $('#new-mvps-next').disabled = r.page >= r.totalPages;
 }
 
+async function loadLeavingMvpsTable() {
+    const params = new URLSearchParams();
+    params.set('q', $('#f-q').value);
+    (msCountry?.getValues() ?? []).forEach(v => params.append('country[]', v));
+    params.set('level', $('#f-level').value);
+    params.set('gender', $('#f-gender').value);
+    (msLanguage?.getValues() ?? []).forEach(v => params.append('language[]', v));
+    params.set('award_category', $('#f-award-category').value);
+    params.set('status', 'left');
+    params.set('sort', leavingMvpsSortState.map(s => s.col + ':' + s.dir).join(',') || 'left:desc,name:asc');
+    params.set('left_months', '3');
+    params.set('page', leavingMvpsState.page);
+    params.set('pageSize', state.pageSize);
+    const r = await fetchJSON('/api/mvps?' + params);
+    leavingMvpsState.totalPages = r.totalPages;
+
+    const tbody = $('#leaving-mvps-tbody');
+    tbody.innerHTML = '';
+    const dl = dateLocale();
+    r.results.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.dataset.id = m.id;
+        const name = `${escapeHTML(m.first_name || '')} ${escapeHTML(m.last_name || '')}`.trim();
+        const leftDate = m.left_at
+            ? new Date(m.left_at + 'T00:00:00').toLocaleDateString(dl, { year: 'numeric', month: 'short', day: 'numeric' })
+            : '';
+        tr.innerHTML = `
+            <td><img class="avatar" src="${escapeHTML(m.picture_url || '')}" loading="lazy" onerror="this.style.visibility='hidden'"></td>
+            <td><strong>${name}</strong></td>
+            <td>${escapeHTML(m.country || '')}</td>
+            <td>${escapeHTML((m.headline || '').slice(0, 80))}</td>
+            <td>${escapeHTML(leftDate)}</td>
+            <td class="num-cell">${m.activities_count || ''}</td>
+            <td class="num-cell">${m.events_count || ''}</td>
+        `;
+        tr.addEventListener('click', () => openDetail(m.id));
+        tbody.appendChild(tr);
+    });
+
+    $('#leaving-mvps-pager-info').textContent = tFn('page_info', r.page, r.totalPages, fmt(r.total));
+    $('#leaving-mvps-prev').disabled = r.page <= 1;
+    $('#leaving-mvps-next').disabled = r.page >= r.totalPages;
+}
+
 // ---------- Detail modal ----------
 
 function renderContributions(items) {
@@ -920,8 +983,8 @@ function buildAggParams() {
     return p.toString();
 }
 
-function reloadTable() { state.page = 1; loadTable(); newMvpsState.page = 1; loadNewMvpsTable(); }
-function reloadAll() { state.page = 1; loadTable(); newMvpsState.page = 1; loadNewMvpsTable(); loadAggregations(buildAggParams()); }
+function reloadTable() { state.page = 1; loadTable(); newMvpsState.page = 1; loadNewMvpsTable(); leavingMvpsState.page = 1; loadLeavingMvpsTable(); }
+function reloadAll() { state.page = 1; loadTable(); newMvpsState.page = 1; loadNewMvpsTable(); leavingMvpsState.page = 1; loadLeavingMvpsTable(); loadAggregations(buildAggParams()); }
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Mobile filter toggle
@@ -991,6 +1054,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadNewMvpsTable();
     });
 
+    // Leaving MVPs table column sort
+    document.querySelector('#leaving-mvps-table thead').addEventListener('click', e => {
+        const th = e.target.closest('th[data-col]');
+        if (!th) return;
+        const col = th.dataset.col;
+        const idx = leavingMvpsSortState.findIndex(s => s.col === col);
+        if (e.shiftKey) {
+            if (idx >= 0) {
+                if (leavingMvpsSortState[idx].dir === 'asc') leavingMvpsSortState[idx].dir = 'desc';
+                else leavingMvpsSortState.splice(idx, 1);
+            } else {
+                leavingMvpsSortState.push({ col, dir: 'asc' });
+            }
+        } else {
+            const currentDir = idx >= 0 ? leavingMvpsSortState[idx].dir : null;
+            leavingMvpsSortState.length = 0;
+            leavingMvpsSortState.push({ col, dir: currentDir === 'asc' ? 'desc' : 'asc' });
+        }
+        if (!leavingMvpsSortState.length) leavingMvpsSortState.push({ col: 'left', dir: 'desc' });
+        updateSortHeaders();
+        leavingMvpsState.page = 1;
+        loadLeavingMvpsTable();
+    });
+
     let typing;
     $('#f-q').addEventListener('input', () => {
         clearTimeout(typing);
@@ -1023,6 +1110,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('#new-mvps-prev').addEventListener('click', () => { if (newMvpsState.page > 1) { newMvpsState.page--; loadNewMvpsTable(); } });
     $('#new-mvps-next').addEventListener('click', () => { if (newMvpsState.page < newMvpsState.totalPages) { newMvpsState.page++; loadNewMvpsTable(); } });
 
+    $('#leaving-mvps-prev').addEventListener('click', () => { if (leavingMvpsState.page > 1) { leavingMvpsState.page--; loadLeavingMvpsTable(); } });
+    $('#leaving-mvps-next').addEventListener('click', () => { if (leavingMvpsState.page < leavingMvpsState.totalPages) { leavingMvpsState.page++; loadLeavingMvpsTable(); } });
+
     $('#drill-prev').addEventListener('click', () => {
         if (drillState.page > 1) { drillState.page--; loadDrillTable(); }
     });
@@ -1042,6 +1132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Refresh table when switching to details/new-mvps tab (ensures correct render)
             if (target === 'details') loadTable();
             if (target === 'new-mvps') loadNewMvpsTable();
+            if (target === 'leaving-mvps') loadLeavingMvpsTable();
         });
     });
 

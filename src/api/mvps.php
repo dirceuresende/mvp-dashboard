@@ -21,6 +21,7 @@ $titleFilter = getParam('title_filter');
 $companyFilter = getParam('company');
 $joinYear = getParam('join_year');
 $joinedMonths = max(0, (int)($_GET['joined_months'] ?? 0));
+$leftMonths   = max(0, (int)($_GET['left_months'] ?? 0));
 $eventsBucket = getParam('events_bucket');
 $activitiesBucket = getParam('activities_bucket');
 $page     = max(1, getIntParam('page', 1));
@@ -59,6 +60,7 @@ if ($titleFilter)   { $where[] = 'title = ?';        $params[] = $titleFilter; }
 if ($companyFilter) { $where[] = 'company_name = ?'; $params[] = $companyFilter; }
 if ($joinYear)      { $where[] = "substr(program_entry_date, 1, 4) = ? AND program_entry_date IS NOT NULL"; $params[] = $joinYear; }
 if ($joinedMonths > 0) { $where[] = "program_entry_date >= date('now', '-{$joinedMonths} months') AND program_entry_date IS NOT NULL"; }
+if ($leftMonths   > 0) { $where[] = "left_at >= date('now', '-{$leftMonths} months') AND left_at IS NOT NULL"; }
 if ($eventsBucket !== '') {
     if ($eventsBucket === '0') {
         $where[] = 'id NOT IN (SELECT DISTINCT mvp_id FROM mvp_events WHERE removed_at IS NULL)';
@@ -127,6 +129,7 @@ $colMap = [
     'status'     => ['is_active'],
     'first_seen' => ['first_seen_at'],
     'entry'      => ['program_entry_date'],
+    'left'       => ['left_at'],
 ];
 
 $orderParts = [];

@@ -58,6 +58,7 @@
         <button class="tab-btn active" data-tab="charts" data-i18n="tab_charts">Charts</button>
         <button class="tab-btn" data-tab="details" data-i18n="tab_details">Details</button>
         <button class="tab-btn" data-tab="new-mvps" data-i18n="tab_new_mvps">New MVPs</button>
+        <button class="tab-btn" data-tab="leaving-mvps" data-i18n="tab_leaving_mvps">Leaving MVPs</button>
     </div>
 </nav>
 
@@ -180,6 +181,33 @@
             <button id="new-mvps-prev" type="button" data-i18n="btn_prev">‹ Prev</button>
             <span id="new-mvps-pager-info"></span>
             <button id="new-mvps-next" type="button" data-i18n="btn_next">Next ›</button>
+        </div>
+    </section>
+    </div>
+
+    <div id="tab-leaving-mvps" class="tab-pane" hidden>
+    <section class="card">
+        <h2 data-i18n="tab_leaving_mvps">Leaving MVPs</h2>
+        <div class="table-wrap">
+            <table id="leaving-mvps-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th data-col="name" data-i18n="col_name">Name</th>
+                        <th data-col="country" data-i18n="col_country">Country</th>
+                        <th data-col="headline" data-i18n="col_headline">Headline</th>
+                        <th data-col="left" data-i18n="col_left_date">Exit Date</th>
+                        <th data-i18n="col_activities">Activities</th>
+                        <th data-i18n="col_events">Events</th>
+                    </tr>
+                </thead>
+                <tbody id="leaving-mvps-tbody"></tbody>
+            </table>
+        </div>
+        <div class="pager">
+            <button id="leaving-mvps-prev" type="button" data-i18n="btn_prev">&lsaquo; Prev</button>
+            <span id="leaving-mvps-pager-info"></span>
+            <button id="leaving-mvps-next" type="button" data-i18n="btn_next">Next &rsaquo;</button>
         </div>
     </section>
     </div>
