@@ -64,6 +64,11 @@ Fetches extended profile data (award category, technology focus areas,
 functional roles, company) from the individual profile API using `curl_multi`
 with up to 10 parallel requests.
 
+If a profile returns **HTTP 404** from the enrichment endpoint, it is skipped
+(logged as a warning) — the profile may simply have no enrichment data available.
+Marking a profile as inactive is handled exclusively by `scan.php` when the
+profile disappears from the main MVP list.
+
 ### `update_activities.php` — contributions & events
 
 ```bash
@@ -88,12 +93,19 @@ php scripts/backfill_ticks.php
 ## Suggested cron schedule
 
 ```cron
-# Daily sync at 03:00 UTC
-0 3 * * * php /var/www/html/scripts/sync.php >> /var/log/mvp-sync.log 2>&1
+# Dias 3–31: scan sem enrich às 07h UTC (evita custo do enrich diariamente)
+0 7 3-31 * * cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --no-enrich >> logs/scan.log 2>&1
 
-# Weekly activity update at 04:00 UTC on Sundays
-0 4 * * 0 php /var/www/html/scripts/update_activities.php >> /var/log/mvp-activities.log 2>&1
+# Dias 1–2 do mês: scan todo hora às HH:00 UTC (captura entradas/saídas do início do mês)
+0 * 1,2 * * cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --no-enrich >> logs/scan.log 2>&1
+
+# Todo domingo às 00h UTC: re-enrich completo + update de atividades/eventos em seguida
+# (update_activities.php --force é chamado automaticamente ao final do --force-enrich)
+0 0 * * 0 cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --force-enrich >> logs/enrich.log 2>&1
 ```
+
+> **Nota:** `sync.php --force-enrich` chama `update_activities.php --force` automaticamente ao terminar,
+> então não é necessário um job separado para atividades/eventos.
 
 ## Production installation (Linux)
 
@@ -127,7 +139,7 @@ All endpoints are served from `/api/` by `public/index.php`.
 | GET    | `/api/stats`          | active MVP count, countries, last scan   |
 | GET    | `/api/filters`        | available filter values                  |
 | GET    | `/api/aggregations`   | grouped counts (country, level, gender…) |
-| GET    | `/api/mvps`           | paginated MVP list with filters          |
+| GET    | `/api/mvps`           | paginated MVP list with filters (supports `q` for name, headline, bio, and **profile ID**) |
 | GET    | `/api/mvps/{id}`      | single MVP detail                        |
 | GET    | `/api/activities`     | contributions & events for an MVP        |
 | GET    | `/api/scans`          | scan history                             |
@@ -149,3 +161,17 @@ When a profile first appears and `program_entry_date` must be computed:
   one call (~15 MB). No pagination is needed.
 - Award category and technology focus areas are not part of the search payload;
   `enrich.php` retrieves them from the individual profile API.
+
+## Dashboard features
+
+- **Charts tab** — world map, top countries, time-in-program, and other aggregated charts.
+- **Full List tab** — paginated, sortable table with all active/left/all MVPs.
+- **New MVPs / Leaving MVPs tabs** — focused views for recent joins and departures.
+- **Active filters bar** — a yellow notice bar appears below the filter row whenever
+  any filter is active, listing each applied filter as a chip. Disappears when all
+  filters are reset.
+- **Search** — the `q` field searches name, headline, biography, and **profile ID** (GUID).
+- **MVP detail modal** — shows profile ID with a copy-to-clipboard button, program
+  dates, social networks, education, activity history, and change log.
+- **i18n** — English, Portuguese (Brazil), and Spanish; all labels update live on
+  language switch.

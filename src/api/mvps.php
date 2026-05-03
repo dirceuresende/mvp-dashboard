@@ -100,9 +100,9 @@ if ($activitiesBucket !== '') {
     }
 }
 if ($q) {
-    $where[] = '(LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(first_name || \' \' || last_name) LIKE ? OR LOWER(headline) LIKE ? OR LOWER(biography) LIKE ?)';
+    $where[] = '(LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(first_name || \' \' || last_name) LIKE ? OR LOWER(headline) LIKE ? OR LOWER(biography) LIKE ? OR LOWER(user_profile_identifier) LIKE ?)';
     $like = '%' . $q . '%';
-    array_push($params, $like, $like, $like, $like, $like);
+    array_push($params, $like, $like, $like, $like, $like, $like);
 }
 
 $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -130,6 +130,8 @@ $colMap = [
     'first_seen' => ['first_seen_at'],
     'entry'      => ['program_entry_date'],
     'left'       => ['left_at'],
+    'activities' => ['(SELECT COUNT(*) FROM mvp_contributions c WHERE c.mvp_id = m.id AND c.removed_at IS NULL)'],
+    'events'     => ['(SELECT COUNT(*) FROM mvp_events e WHERE e.mvp_id = m.id AND e.removed_at IS NULL)'],
 ];
 
 $orderParts = [];

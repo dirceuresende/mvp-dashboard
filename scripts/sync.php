@@ -10,7 +10,7 @@ declare(strict_types=1);
  *
  * Usage:
  *   php scripts/sync.php                      # scan + enrich new/unenriched
- *   php scripts/sync.php --force-enrich       # scan + re-enrich ALL active MVPs
+ *   php scripts/sync.php --force-enrich       # scan + re-enrich ALL active MVPs + update activities/events
  *   php scripts/sync.php --no-enrich          # scan only, skip enrichment
  *   php scripts/sync.php --workers 20         # override parallel workers
  *   php scripts/sync.php --force              # bypass suspicious-left safety guard
@@ -504,6 +504,16 @@ $pdo->prepare("UPDATE scans SET finished_at=? WHERE id=?")->execute([$finalNowIs
 if (file_exists($progressFile)) { @unlink($progressFile); }
 
 fwrite(STDERR, sprintf("[ENRICH] Complete. Updated: %d  Errors: %d\n", $enrichDone, $enrichErrors));
+
+// When --force-enrich was used, run update_activities.php immediately after
+if ($forceEnrich) {
+    fwrite(STDERR, "[ACTIVITIES] Starting activities/events update...\n");
+    $actScript = __DIR__ . '/update_activities.php';
+    passthru(PHP_BINARY . ' -d max_execution_time=0 ' . escapeshellarg($actScript) . ' --force', $actExitCode);
+    if ($actExitCode !== 0) {
+        fwrite(STDERR, "[ACTIVITIES] Finished with errors (exit {$actExitCode}).\n");
+    }
+}
 
 
 // ╔══════════════════════════════════════════════════════════════════════════╗

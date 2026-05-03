@@ -149,11 +149,21 @@ sudo rm -f /var/www/html/data/test.sqlite
 # 9. Primeira carga (se nao usar o setup automatico via browser)
 # ------------------------------------------------------------------------------
 cd /var/www/html
+
+# 1) Sync completo (scan + enrich)
 php scripts/sync.php > data/setup.log 2>&1 &
-echo "PID: $!"
+echo "PID sync: $!"
+
+# Acompanhar progresso do sync (Ctrl+C quando finalizar)
+tail -f data/setup.log
+
+# 2) Carregar atividades e eventos para todos os MVPs enriquecidos
+#    (pode demorar varios minutos dependendo do numero de MVPs)
+php -d max_execution_time=0 scripts/update_activities.php >> data/activities.log 2>&1 &
+echo "PID activities: $!"
 
 # Acompanhar progresso
-tail -f data/setup.log
+tail -f data/activities.log
 
 
 # ------------------------------------------------------------------------------

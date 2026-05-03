@@ -95,7 +95,7 @@ foreach ($chunks as $chunk) {
             $batch[] = buildBatchEntry($row, $data, $nowIso, $now);
             $done++;
         } elseif ($httpCode === 404) {
-            fwrite(STDERR, sprintf("[WARN] profile 404 for identifier=%s\n", $row['user_profile_identifier']));
+            fwrite(STDERR, sprintf("[WARN] 404 for identifier=%s — skipping enrichment\n", $row['user_profile_identifier']));
             $errors++;
         } else {
             $needRetry[] = $row; // non-404 failure — retry

@@ -288,6 +288,31 @@ function saveFilters() {
         sort:         $('#f-sort').value,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    updateActiveFiltersBar();
+}
+
+function updateActiveFiltersBar() {
+    const bar = document.getElementById('active-filters-bar');
+    if (!bar) return;
+    const chips = [];
+    const q = $('#f-q').value.trim();
+    if (q) chips.push(escapeHTML(q));
+    const countries = msCountry?.getValues() ?? [];
+    countries.forEach(v => chips.push(escapeHTML(v)));
+    const languages = msLanguage?.getValues() ?? [];
+    languages.forEach(v => chips.push(escapeHTML(prettyLang(v))));
+    const level = $('#f-level').value;
+    if (level) chips.push(escapeHTML(level));
+    const gender = $('#f-gender').value;
+    if (gender) chips.push(escapeHTML(gender));
+    const awardCat = $('#f-award-category').value;
+    if (awardCat) chips.push(escapeHTML(awardCat));
+    const status = $('#f-status').value;
+    if (status && status !== 'active') chips.push(escapeHTML(t('status_' + status)));
+    if (!chips.length) { bar.hidden = true; return; }
+    bar.hidden = false;
+    bar.innerHTML = `<span class="af-label">${t('active_filters_label')}</span>` +
+        chips.map(c => `<span class="af-chip">${c}</span>`).join('');
 }
 
 function restoreFilters() {
@@ -925,6 +950,7 @@ async function openDetail(id) {
         <section><h4>${t('modal_education')}</h4>${schools}</section>
         <section>
             <h4>${t('modal_program_dates')}</h4>
+            ${m.user_profile_identifier ? `<div>${t('modal_profile_id')} <code>${escapeHTML(m.user_profile_identifier)}</code> <button class="btn-copy" data-copy="${escapeHTML(m.user_profile_identifier)}" title="Copy ID">⧉</button></div>` : ''}
             <div>${t('modal_program_entry')} <strong>${escapeHTML(m.program_entry_date || '–')}</strong> ${programEntryDetails}</div>
             <div>${t('modal_first_seen')} ${escapeHTML(m.first_seen_at || '–')}</div>
             <div>${t('modal_last_seen')} ${escapeHTML(m.last_seen_at || '–')}</div>
@@ -986,6 +1012,19 @@ function buildAggParams() {
 function reloadTable() { state.page = 1; loadTable(); newMvpsState.page = 1; loadNewMvpsTable(); leavingMvpsState.page = 1; loadLeavingMvpsTable(); }
 function reloadAll() { state.page = 1; loadTable(); newMvpsState.page = 1; loadNewMvpsTable(); leavingMvpsState.page = 1; loadLeavingMvpsTable(); loadAggregations(buildAggParams()); }
 
+document.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-copy');
+    if (!btn) return;
+    const val = btn.dataset.copy;
+    if (!val) return;
+    navigator.clipboard.writeText(val).then(() => {
+        const prev = btn.title;
+        btn.title = '✓ Copied!';
+        btn.style.color = '#16a34a';
+        setTimeout(() => { btn.title = prev; btn.style.color = ''; }, 1500);
+    });
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Mobile filter toggle
     const filterToggle = document.getElementById('filter-toggle');
@@ -1000,6 +1039,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadStats();
     await loadFilters();
     restoreFilters();
+    updateActiveFiltersBar();
     await loadAggregations(buildAggParams());
     await loadTable();
     updateSortHeaders();
@@ -1147,6 +1187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateSortHeaders();
         if (msCountry) msCountry.updateI18n(t('all_countries'));
         if (msLanguage) msLanguage.updateI18n(t('all_languages'));
+        updateActiveFiltersBar();
         loadStats();
         reloadAll();
     });
