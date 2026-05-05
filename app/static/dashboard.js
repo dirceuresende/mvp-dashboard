@@ -294,25 +294,36 @@ function saveFilters() {
 function updateActiveFiltersBar() {
     const bar = document.getElementById('active-filters-bar');
     if (!bar) return;
-    const chips = [];
+    const chips = []; // { label: string, action: () => void }
     const q = $('#f-q').value.trim();
-    if (q) chips.push(escapeHTML(q));
+    if (q) chips.push({ label: escapeHTML(q), action: () => { $('#f-q').value = ''; } });
     const countries = msCountry?.getValues() ?? [];
-    countries.forEach(v => chips.push(escapeHTML(v)));
+    countries.forEach(v => chips.push({ label: escapeHTML(v), action: () => msCountry.setValues(countries.filter(c => c !== v)) }));
     const languages = msLanguage?.getValues() ?? [];
-    languages.forEach(v => chips.push(escapeHTML(prettyLang(v))));
+    languages.forEach(v => chips.push({ label: escapeHTML(prettyLang(v)), action: () => msLanguage.setValues(languages.filter(l => l !== v)) }));
     const level = $('#f-level').value;
-    if (level) chips.push(escapeHTML(level));
+    if (level) chips.push({ label: escapeHTML(level), action: () => { $('#f-level').value = ''; } });
     const gender = $('#f-gender').value;
-    if (gender) chips.push(escapeHTML(gender));
+    if (gender) chips.push({ label: escapeHTML(gender), action: () => { $('#f-gender').value = ''; } });
     const awardCat = $('#f-award-category').value;
-    if (awardCat) chips.push(escapeHTML(awardCat));
+    if (awardCat) chips.push({ label: escapeHTML(awardCat), action: () => { $('#f-award-category').value = ''; } });
     const status = $('#f-status').value;
-    if (status && status !== 'active') chips.push(escapeHTML(t('status_' + status)));
+    if (status && status !== 'active') chips.push({ label: escapeHTML(t('status_' + status)), action: () => { $('#f-status').value = 'active'; } });
     if (!chips.length) { bar.hidden = true; return; }
     bar.hidden = false;
     bar.innerHTML = `<span class="af-label">${t('active_filters_label')}</span>` +
-        chips.map(c => `<span class="af-chip">${c}</span>`).join('');
+        chips.map((c, i) => `<span class="af-chip">${c.label}<button class="af-chip-remove" data-chip="${i}" type="button" aria-label="Remove filter">&times;</button></span>`).join('') +
+        `<button class="af-clear-all" type="button" aria-label="Clear all filters">&times;</button>`;
+    bar.querySelectorAll('.af-chip-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+            chips[+btn.dataset.chip].action();
+            saveFilters();
+            reloadAll();
+        });
+    });
+    bar.querySelector('.af-clear-all').addEventListener('click', () => {
+        $('#f-reset').click();
+    });
 }
 
 function restoreFilters() {
@@ -936,11 +947,12 @@ async function openDetail(id) {
             <img src="${escapeHTML(m.picture_url || '')}" onerror="this.style.visibility='hidden'">
             <div>
                 <h3>${escapeHTML(name)}</h3>
-                <div class="meta">
-                    ${escapeHTML(m.country || '')} • ${escapeHTML(m.level_name || '')}
-                    ${m.years_in_program ? `\u2022 ${Math.round(m.years_in_program)} ${Math.round(m.years_in_program) === 1 ? t('modal_years_singular') : t('modal_years_plural')} ${t('modal_in_program')}` : ''}
-                    ${m.is_active ? '' : `\u2022 <strong style="color:#b91c1c">${t('modal_left_badge')}</strong>`}
-                </div>
+                <div class="meta">${[
+                    m.country ? escapeHTML(m.country) : null,
+                    m.level_name ? escapeHTML(m.level_name) : null,
+                    m.years_in_program ? `${Math.round(m.years_in_program)} ${Math.round(m.years_in_program) === 1 ? t('modal_years_singular') : t('modal_years_plural')} ${t('modal_in_program')}` : null,
+                    m.is_active ? null : `<strong style="color:#b91c1c">${t('modal_left_badge')}</strong>`,
+                ].filter(Boolean).join(' \u2022 ')}</div>
                 <div>${escapeHTML(m.headline || '')}</div>
             </div>
         </div>
@@ -992,6 +1004,7 @@ async function openDetail(id) {
         }
     });
 
+    $('#mvp-modal-title').textContent = t('modal_profile_heading') + name;
     $('#mvp-modal').showModal();
 }
 
