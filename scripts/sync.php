@@ -631,10 +631,25 @@ function syncBuildEnrichEntry(array $row, array $data, string $nowIso, DateTimeI
 {
     $p        = $data['userProfile'] ?? [];
     $yearsApi = isset($p['yearsInProgram']) ? (int)$p['yearsInProgram'] : null;
-    // Always recompute: scan sets ticks date without yearsInProgram validation.
-    // Enrich is the authoritative step because we now have yearsInProgram.
+    $firstAwarded  = $row['first_awarded_date'] ?: null;
+    $existingEntry = $row['program_entry_date'] ?: null;
+
+    // Enrich is the authoritative step because we now have yearsInProgram for ticks validation.
+    // However, discard ticks that are newer than the established entry date — they likely reflect
+    // a profile picture change rather than the original award date.
     $ticksDate = extractTicksDate($row['picture_url'] ?? null, $yearsApi, $now);
-    $entry     = computeEntryDate($row['first_awarded_date'] ?: null, $now, $yearsApi, $ticksDate);
+    if ($ticksDate !== null && $existingEntry !== null && $ticksDate > $existingEntry) {
+        $ticksDate = null;
+    }
+
+    $entry = computeEntryDate($firstAwarded, $now, $yearsApi, $ticksDate);
+
+    // Never move program_entry_date forward based on incomplete data.
+    // If the recomputed date is later than an already-established date (and no authoritative
+    // first_awarded_date exists), preserve the established one.
+    if (!$firstAwarded && $existingEntry !== null && $entry > $existingEntry) {
+        $entry = $existingEntry;
+    }
     return [
         'id'                    => $row['id'],
         'years_in_program_api'  => $yearsApi,
