@@ -54,6 +54,7 @@ function setupCronsLinux(string $baseDir, string $phpBin, string $logDir): array
     $jobs = [
         "0 7 3-31 * * cd {$dir} && {$php} -d max_execution_time=0 {$sync} --no-enrich >> {$slog} 2>&1",
         "0 * 1,2 * * cd {$dir} && {$php} -d max_execution_time=0 {$sync} --no-enrich >> {$slog} 2>&1",
+        "0 * 15 7 * cd {$dir} && {$php} -d max_execution_time=0 {$sync} --no-enrich >> {$slog} 2>&1",
         "0 0 * * 0   cd {$dir} && {$php} -d max_execution_time=0 {$sync} --force-enrich >> {$elog} 2>&1",
     ];
 
@@ -89,12 +90,13 @@ function setupCronsWindows(string $baseDir, string $phpBin, string $logDir): arr
     $sync = $bd . '\\scripts\\sync.php';
 
     // Build PowerShell command strings (double-escaped for /TR argument)
+    // Light-scan window: days 1-2 of any month, plus July 15th.
     $scanTr = sprintf(
-        'powershell -NonInteractive -Command "$d=[int](Get-Date -Format \'dd\'); if ($d -gt 2) { Set-Location \'%s\'; & \'%s\' -d max_execution_time=0 \'%s\' --no-enrich >> \'%s\' 2>&1 }"',
+        'powershell -NonInteractive -Command "$d=[int](Get-Date -Format \'dd\'); $m=[int](Get-Date -Format \'MM\'); if (-not ($d -le 2 -or ($d -eq 15 -and $m -eq 7))) { Set-Location \'%s\'; & \'%s\' -d max_execution_time=0 \'%s\' --no-enrich >> \'%s\' 2>&1 }"',
         $bd, $php, $sync, $slog
     );
     $scan12Tr = sprintf(
-        'powershell -NonInteractive -Command "$d=[int](Get-Date -Format \'dd\'); if ($d -le 2) { Set-Location \'%s\'; & \'%s\' -d max_execution_time=0 \'%s\' --no-enrich >> \'%s\' 2>&1 }"',
+        'powershell -NonInteractive -Command "$d=[int](Get-Date -Format \'dd\'); $m=[int](Get-Date -Format \'MM\'); if ($d -le 2 -or ($d -eq 15 -and $m -eq 7)) { Set-Location \'%s\'; & \'%s\' -d max_execution_time=0 \'%s\' --no-enrich >> \'%s\' 2>&1 }"',
         $bd, $php, $sync, $slog
     );
     $enrichTr = sprintf(

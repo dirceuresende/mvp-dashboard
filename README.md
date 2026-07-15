@@ -99,6 +99,9 @@ php scripts/backfill_ticks.php
 # Dias 1–2 do mês: scan todo hora às HH:00 UTC (captura entradas/saídas do início do mês)
 0 * 1,2 * * cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --no-enrich >> logs/scan.log 2>&1
 
+# Dia 15 de julho: mesmo scan horário mais leve (data de corte adicional)
+0 * 15 7 * cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --no-enrich >> logs/scan.log 2>&1
+
 # Todo domingo às 00h UTC: re-enrich completo + update de atividades/eventos em seguida
 # (update_activities.php --force é chamado automaticamente ao final do --force-enrich)
 0 0 * * 0 cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --force-enrich >> logs/enrich.log 2>&1
