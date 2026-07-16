@@ -71,8 +71,23 @@ unset($deleteStmt);
 fwrite(STDERR, sprintf("[PRUNE] Deleted %d rows.\n", $deleted));
 
 $sizeBefore = filesize(DB_PATH);
+
+$freeBytes = disk_free_space(dirname(DB_PATH));
+if ($freeBytes !== false && $freeBytes < $sizeBefore) {
+    fwrite(STDERR, sprintf(
+        "[PRUNE] ABORTED — not enough free disk space for VACUUM. Need ~%.1f MB, only %.1f MB free.\n",
+        $sizeBefore / 1048576, $freeBytes / 1048576
+    ));
+    exit(1);
+}
+
 fwrite(STDERR, sprintf("[PRUNE] File size before VACUUM: %.1f MB. Running VACUUM (needs ~that much free disk space)...\n", $sizeBefore / 1048576));
 
+// VACUUM builds a full temporary copy of the database before swapping it in.
+// The connection defaults to PRAGMA temp_store=MEMORY (see src/db.php), which
+// would force that multi-GB temp copy into RAM and risk an OOM kill on small
+// VMs — switch to disk-backed temp storage for this operation only.
+$pdo->exec('PRAGMA temp_store = FILE');
 $pdo->exec('VACUUM');
 
 clearstatcache(true, DB_PATH);
