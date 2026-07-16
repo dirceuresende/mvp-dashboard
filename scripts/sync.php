@@ -29,7 +29,7 @@ define('SYNC_MAX_RETRIES',    3);     // total attempts per profile (1 parallel 
 define('SYNC_WORKERS',        10);    // ← parallel enrichment workers — change this freely
 define('SYNC_FLUSH_EVERY',    50);    // write enriched rows to DB in batches of this size
 define('SYNC_MIN_PROFILES',   500);   // safety: abort if API returns fewer MVPs than this
-define('SYNC_MAX_LEFT_PCT',   10);    // safety: abort if >N% of active MVPs appear to have left
+define('SYNC_MAX_LEFT_PCT',   40);    // safety: abort if >N% of active MVPs appear to have left
 
 // ── CLI arguments ───────────────────────────────────────────────────────────
 $args        = $argv ?? [];

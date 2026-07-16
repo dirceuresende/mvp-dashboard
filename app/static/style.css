@@ -111,6 +111,17 @@ canvas { max-width: 100%; }
     line-height: 1;
 }
 #active-filters-bar[hidden] { display: none; }
+
+/* -------- Scan warning bar (safety-abort notice) -------- */
+#scan-warning-bar {
+    background: #fef2f2;
+    border-bottom: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 10px 28px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+#scan-warning-bar[hidden] { display: none; }
 .af-label {
     font-weight: 600;
     color: #92400e;

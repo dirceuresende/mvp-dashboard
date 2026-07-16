@@ -110,6 +110,13 @@ async function loadStats() {
         const ts = s.last_scan.finished_at || s.last_scan.started_at;
         $('#stat-lastscan').textContent = t('stat_lastscan_prefix') + ' ' + (ts || '\u2013');
     }
+    const warnBar = $('#scan-warning-bar');
+    if (s.scan_aborted) {
+        warnBar.textContent = t('scan_warning') + ' ' + (s.last_scan.notes || '');
+        warnBar.hidden = false;
+    } else {
+        warnBar.hidden = true;
+    }
 }
 
 async function loadFilters() {

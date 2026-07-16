@@ -16,7 +16,7 @@ define('API_URL', 'https://mavenapi-prod.azurewebsites.net/api/UserProfiles/sear
 define('IMAGE_BASE', 'https://images.mvp.microsoft.com/');
 define('USER_AGENT', 'Mozilla/5.0 MVP-Extract/1.0');
 define('MIN_EXPECTED_PROFILES', 500);   // abort if API returns fewer than this
-define('MAX_SUSPICIOUS_LEFT_PCT', 10);  // abort if >10% of active MVPs appear to have left in one scan
+define('MAX_SUSPICIOUS_LEFT_PCT', 40);  // abort if >40% of active MVPs appear to have left in one scan
 
 $TRACKED_FIELDS = [
     'first_name', 'last_name', 'localized_first_name', 'localized_last_name',

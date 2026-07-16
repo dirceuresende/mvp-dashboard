@@ -14,9 +14,18 @@ $countries = (int)$pdo->query(
 
 $lastScan = $pdo->query("SELECT * FROM scans ORDER BY id DESC LIMIT 1")->fetch();
 
+// A scan that safety-aborted still gets finished_at set, but total_mvps stays
+// NULL and notes explains why — surface this so it isn't mistaken for a
+// normal, successful run (see scan.php / sync.php safety guards).
+$scanAborted = $lastScan
+    && $lastScan['finished_at'] !== null
+    && $lastScan['total_mvps'] === null
+    && !empty($lastScan['notes']);
+
 jsonOut([
-    'active_mvps' => $active,
-    'left_mvps'   => $left,
-    'countries'   => $countries,
-    'last_scan'   => $lastScan ?: null,
+    'active_mvps'   => $active,
+    'left_mvps'     => $left,
+    'countries'     => $countries,
+    'last_scan'     => $lastScan ?: null,
+    'scan_aborted'  => $scanAborted,
 ]);

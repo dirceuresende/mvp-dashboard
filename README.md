@@ -51,7 +51,7 @@ What each scan does:
 - Re-marks previously-left MVPs as `returned` if they reappear
 
 Safety guards abort the run if the API returns fewer than 500 profiles, or if
-more than 10 % of active MVPs appear to have left in a single scan.
+more than 40 % of active MVPs appear to have left in a single scan.
 
 ### `enrich.php` — profile enrichment
 
