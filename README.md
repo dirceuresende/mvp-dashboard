@@ -90,6 +90,20 @@ fallback. Run once after bulk imports or data corrections.
 php scripts/backfill_ticks.php
 ```
 
+### `prune_snapshots.php` — reclaim disk space from `mvp_snapshots`
+
+`scan.php`/`sync.php` only write a new `mvp_snapshots` row (full raw profile
+JSON) when an MVP is new, changed, or returned — never on a plain
+"still here, unchanged" pass. Over time the table still grows; this utility
+deletes old snapshots, keeping each MVP's most recent one plus anything
+within the retention window, then runs `VACUUM` to shrink the `.sqlite` file.
+
+```bash
+php scripts/prune_snapshots.php                    # dry run, 90-day retention
+php scripts/prune_snapshots.php --apply            # actually delete + VACUUM
+php scripts/prune_snapshots.php --apply --keep-days 30
+```
+
 ## Suggested cron schedule
 
 ```cron
@@ -105,6 +119,9 @@ php scripts/backfill_ticks.php
 # Todo domingo às 00h UTC: re-enrich completo + update de atividades/eventos em seguida
 # (update_activities.php --force é chamado automaticamente ao final do --force-enrich)
 0 0 * * 0 cd /var/www/html && php -d max_execution_time=0 scripts/sync.php --force-enrich >> logs/enrich.log 2>&1
+
+# Todo domingo às 06h UTC: limpeza de snapshots antigos (retenção de 90 dias) + VACUUM
+0 6 * * 0 cd /var/www/html && php scripts/prune_snapshots.php --apply >> logs/prune.log 2>&1
 ```
 
 > **Nota:** `sync.php --force-enrich` chama `update_activities.php --force` automaticamente ao terminar,

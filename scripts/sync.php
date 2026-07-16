@@ -206,6 +206,7 @@ foreach ($profiles as $profile) {
 
         $stmts['selectMvp']->execute([$mvpId]);
         $existing = $stmts['selectMvp']->fetch() ?: null;
+        $shouldSnapshot = $existing === null; // new, changed, or returned — never on a plain "still here, unchanged" pass
 
         if ($existing === null) {
             // ── New MVP ────────────────────────────────────────────────────
@@ -249,6 +250,7 @@ foreach ($profiles as $profile) {
             if ($existing['left_at'] !== null) {
                 $stmts['updateMvpReturn']->execute([$mvpId]);
                 $stmts['insertHistory']->execute([$mvpId, $scanId, $nowIso, 'returned', null, null, null]);
+                $shouldSnapshot = true;
             }
 
             if ($changes) {
@@ -270,6 +272,7 @@ foreach ($profiles as $profile) {
                     ]);
                 }
                 $updatedCount++;
+                $shouldSnapshot = true;
             } else {
                 $stmts['updateMvpSeen']->execute([$nowIso, $scanId, $mvpId]);
             }
@@ -285,10 +288,12 @@ foreach ($profiles as $profile) {
             }
         }
 
-        $stmts['insertSnapshot']->execute([
-            $mvpId, $scanId, $nowIso,
-            json_encode($profile, JSON_UNESCAPED_UNICODE),
-        ]);
+        if ($shouldSnapshot) {
+            $stmts['insertSnapshot']->execute([
+                $mvpId, $scanId, $nowIso,
+                json_encode($profile, JSON_UNESCAPED_UNICODE),
+            ]);
+        }
         syncUpsertSocialNetworks($pdo, $mvpId, $profile, $stmts);
         syncUpsertSchools($pdo, $mvpId, $profile, $stmts);
 
