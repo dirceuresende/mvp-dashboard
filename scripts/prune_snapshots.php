@@ -39,6 +39,8 @@ $countStmt = $pdo->prepare("
 ");
 $countStmt->execute([$cutoff]);
 $toDelete = (int)$countStmt->fetchColumn();
+$countStmt->closeCursor();
+unset($countStmt);
 
 $total = (int)$pdo->query('SELECT COUNT(*) FROM mvp_snapshots')->fetchColumn();
 
@@ -64,7 +66,18 @@ $deleteStmt = $pdo->prepare("
 ");
 $deleteStmt->execute([$cutoff]);
 $deleted = $deleteStmt->rowCount();
-fwrite(STDERR, sprintf("[PRUNE] Deleted %d rows. Running VACUUM to reclaim disk space...\n", $deleted));
+$deleteStmt->closeCursor();
+unset($deleteStmt);
+fwrite(STDERR, sprintf("[PRUNE] Deleted %d rows.\n", $deleted));
+
+$sizeBefore = filesize(DB_PATH);
+fwrite(STDERR, sprintf("[PRUNE] File size before VACUUM: %.1f MB. Running VACUUM (needs ~that much free disk space)...\n", $sizeBefore / 1048576));
 
 $pdo->exec('VACUUM');
-fwrite(STDERR, "[PRUNE] Done.\n");
+
+clearstatcache(true, DB_PATH);
+$sizeAfter = filesize(DB_PATH);
+fwrite(STDERR, sprintf(
+    "[PRUNE] Done. File size after VACUUM: %.1f MB (freed %.1f MB).\n",
+    $sizeAfter / 1048576, ($sizeBefore - $sizeAfter) / 1048576
+));
