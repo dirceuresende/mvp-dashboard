@@ -765,6 +765,7 @@ async function loadTable() {
             <td>${escapeHTML(m.country || '')}</td>
             <td>${escapeHTML(m.level_name || '')}</td>
             <td>${escapeHTML((m.headline || '').slice(0, 80))}</td>
+            <td>${escapeHTML((m.award_category || []).join(', '))}</td>
             <td>${m.years_in_program != null ? Math.round(m.years_in_program) : ''}</td>
             <td class="num-cell">${m.activities_count || ''}</td>
             <td class="num-cell">${m.events_count || ''}</td>
@@ -810,6 +811,8 @@ async function loadNewMvpsTable() {
             <td><strong>${name}</strong></td>
             <td>${escapeHTML(m.country || '')}</td>
             <td>${escapeHTML((m.headline || '').slice(0, 80))}</td>
+            <td>${escapeHTML((m.award_category || []).join(', '))}</td>
+            <td>${m.years_in_program != null ? Math.round(m.years_in_program) : ''}</td>
             <td>${escapeHTML(entryDate)}</td>
             <td class="num-cell">${m.activities_count || ''}</td>
             <td class="num-cell">${m.events_count || ''}</td>
@@ -855,6 +858,8 @@ async function loadLeavingMvpsTable() {
             <td><strong>${name}</strong></td>
             <td>${escapeHTML(m.country || '')}</td>
             <td>${escapeHTML((m.headline || '').slice(0, 80))}</td>
+            <td>${escapeHTML((m.award_category || []).join(', '))}</td>
+            <td>${m.years_in_program != null ? Math.round(m.years_in_program) : ''}</td>
             <td>${escapeHTML(leftDate)}</td>
             <td class="num-cell">${m.activities_count || ''}</td>
             <td class="num-cell">${m.events_count || ''}</td>

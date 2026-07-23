@@ -126,6 +126,8 @@ $colMap = [
     'level'      => ['level_name COLLATE NOCASE'],
     'headline'   => ['headline COLLATE NOCASE'],
     'years'      => null, // handled specially below
+    'years_program' => null, // handled specially below (alias of 'years')
+    'category'   => ['award_category COLLATE NOCASE'],
     'status'     => ['is_active'],
     'first_seen' => ['first_seen_at'],
     'entry'      => ['program_entry_date'],
@@ -141,7 +143,7 @@ if (str_contains($sort, ':')) {
         if (!$part) continue;
         [$col, $dir] = array_pad(explode(':', $part, 2), 2, 'asc');
         $dir = strtolower($dir) === 'desc' ? 'DESC' : 'ASC';
-        if ($col === 'years') {
+        if ($col === 'years' || $col === 'years_program') {
             // Sort by actual years value, NULLs always last
             $orderParts[] = "(years_in_program_api IS NULL) ASC";
             $orderParts[] = "years_in_program_api {$dir}";
