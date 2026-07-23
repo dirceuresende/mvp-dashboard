@@ -6,13 +6,27 @@ declare(strict_types=1);
  * Fetches all MVP profiles from the Microsoft Maven API, upserts them into
  * SQLite, and maintains a full audit trail in mvp_history.
  *
+ * WARNING (2026-07-24): this script still uses the LEGACY bulk search
+ * endpoint (GET /api/UserProfiles/search/), which was found to be
+ * stale/incomplete compared to what mvp.microsoft.com actually uses (it was
+ * missing dozens of genuinely-active MVPs, causing false "left the program"
+ * markings — see scripts/sync.php's header comment for the full story).
+ * scripts/sync.php was rewritten to use the live paginated
+ * POST /api/CommunityLeaders/search/ endpoint instead and is the actively
+ * maintained, production entry point (called by cron and the setup UI).
+ * Prefer `php scripts/sync.php --no-enrich` over this script until this one
+ * is updated to match.
+ *
  * Usage: php scripts/scan.php
  */
 
 require_once __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/helpers.php';
 
-define('API_URL', 'https://mavenapi-prod.azurewebsites.net/api/UserProfiles/search/?program=MVP&pageIndex=1&pageSize=18');
+// NOTE (2026-07-24): mavenapi-prod.azurewebsites.net was retired/blocked by
+// Microsoft (403 at the Azure edge). The API is still reachable at the same
+// paths under mavenapi-prod.microsoft.com instead — only the domain changed.
+define('API_URL', 'https://mavenapi-prod.microsoft.com/api/UserProfiles/search/?program=MVP&pageIndex=1&pageSize=18');
 define('IMAGE_BASE', 'https://images.mvp.microsoft.com/');
 define('USER_AGENT', 'Mozilla/5.0 MVP-Extract/1.0');
 define('MIN_EXPECTED_PROFILES', 500);   // abort if API returns fewer than this

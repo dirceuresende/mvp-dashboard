@@ -18,7 +18,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/helpers.php';
 
-define('ACT_API_BASE',    'https://mavenapi-prod.azurewebsites.net/api');
+// NOTE (2026-07-24): mavenapi-prod.azurewebsites.net was retired/blocked by
+// Microsoft (403 at the Azure edge). The API is still reachable at the same
+// paths under mavenapi-prod.microsoft.com instead — only the domain changed.
+define('ACT_API_BASE',    'https://mavenapi-prod.microsoft.com/api');
 define('ACT_MAX_WORKERS', 8);
 define('ACT_TIMEOUT',     20);
 define('ACT_MAX_RETRIES', 3);

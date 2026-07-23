@@ -7,6 +7,10 @@ declare(strict_types=1);
  * For activities (contributions/events) use scripts/update_activities.php.
  * Uses curl_multi for parallel requests with retry on failure.
  *
+ * NOTE (2026-07-24): this script only calls the per-profile detail endpoint
+ * (unaffected by the legacy bulk-search staleness issue — see
+ * scripts/sync.php's header comment), so it remains safe to use as-is.
+ *
  * Usage:
  *   php scripts/enrich.php             # enrich only un-enriched MVPs
  *   php scripts/enrich.php --force     # re-enrich all active MVPs
@@ -15,7 +19,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/helpers.php';
 
-define('API_BASE',        'https://mavenapi-prod.azurewebsites.net/api');
+// NOTE (2026-07-24): mavenapi-prod.azurewebsites.net was retired/blocked by
+// Microsoft (403 at the Azure edge). The API is still reachable at the same
+// paths under mavenapi-prod.microsoft.com instead — only the domain changed.
+define('API_BASE',        'https://mavenapi-prod.microsoft.com/api');
 define('MAX_WORKERS',     10);  // parallel profile fetches per chunk
 define('REQUEST_TIMEOUT', 20);
 define('BATCH_SIZE',      50);

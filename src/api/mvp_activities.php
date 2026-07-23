@@ -59,7 +59,10 @@ if ($hasStored) {
 }
 
 // Fallback: fetch live from Microsoft API (not yet enriched)
-$base   = 'https://mavenapi-prod.azurewebsites.net/api';
+// NOTE (2026-07-24): mavenapi-prod.azurewebsites.net was retired/blocked by
+// Microsoft (403 at the Azure edge). The API is still reachable at the same
+// paths under mavenapi-prod.microsoft.com instead — only the domain changed.
+$base   = 'https://mavenapi-prod.microsoft.com/api';
 $tenant = 'MVP';
 
 function fetchRemote(string $url): ?array {
